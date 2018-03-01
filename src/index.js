@@ -27,19 +27,20 @@ const admin = google.admin('directory_v1');
 
 exports.handler = function(event, context) {
 	var response = new Response();
+  var groupKey = event.query['groupKey'] || '';
 	response.setContext(context);
 
   authClient.authorize(function(err, data) {
     if (err) {
-      throw err;
+      response.send(err.response.data);
+      return;
     }
-    console.log('YOU ARE AUTHORIZED');
     
-    const memberParams = {groupKey:"j-test-3@shelterplus.in", auth: authClient};
+    const memberParams = {groupKey:groupKey, auth: authClient};
     admin.groups.get(memberParams, function(err, data) {
       if (err) {
-        console.log(err);
-        //throw err;
+        response.send(err.response.data);
+        return;
       }
       var result = {
         "group": data.data
