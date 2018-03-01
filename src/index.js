@@ -16,6 +16,7 @@ var scopes = [
       'https://www.googleapis.com/auth/admin.directory.user',
       'https://www.googleapis.com/auth/admin.directory.group'
     ];
+
 const authClient = new google.auth.JWT(
   process.env.CLIENT_EMAIL,
   null,
