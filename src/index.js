@@ -33,6 +33,7 @@ exports.handler = function(event, context) {
 
   authClient.authorize(function(err, data) {
     if (err) {
+			console.log(err);
       response.send(err.response.data);
       return;
     }
@@ -40,6 +41,7 @@ exports.handler = function(event, context) {
     const memberParams = {groupKey:groupKey, auth: authClient};
     admin.groups.get(memberParams, function(err, data) {
       if (err) {
+				console.log(err);
         response.send(err.response.data);
         return;
       }
