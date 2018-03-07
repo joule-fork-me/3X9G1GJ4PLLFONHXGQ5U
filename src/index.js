@@ -11,7 +11,7 @@
  *    event.{queryStringParam}, Query string parameters as defined in your .joule.yml
  */
 var Response = require('joule-node-response');
-var {google} = require('googleapis');
+var google = require('googleapis').google;
 var scopes = [
       'https://www.googleapis.com/auth/admin.directory.user',
       'https://www.googleapis.com/auth/admin.directory.group'
