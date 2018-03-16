@@ -100,13 +100,87 @@ var get_group_by_key = function(event, context) {
 };
 
 var dynamic_group = function(event, context) {
-  console.log(event);
 	var response = new Response();
 	response.setContext(context);
-  response.send(event);
+  authClient.authorize(function(err, data) {
+    if (err) {
+			console.log(err);
+      response.send(err.response.data);
+      return;
+    }
+    
+    const userKey = event.post['id'];
+    const memberParams = {userKey:userKey, auth: authClient};
+    admin.users.get(memberParams, function(err, data) {
+      if (err) {
+				console.log(err);
+        response.send(err.response.data);
+        return;
+      }
+
+      console.log(data);
+      const user = data.data;
+
+      if(user.name.fullName.toLowerCase().indexOf('jaisen') !== -1) {
+        const resource = Object.assign(user, {role: 'MEMBER'});
+        const insertMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', resource: resource, auth: authClient};
+        admin.members.insert(insertMemberParams, function(err, data) {
+          if (err) {
+            console.log('add_to_group err');
+            console.log(err);
+            return;
+          }
+          console.log('add_to_group success');
+          console.log(data);
+          return;
+        });
+      } else {
+        const resource = Object.assign(user, {role: 'MEMBER'});
+        const deleteMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', memberKey: user.id, auth: authClient};
+        admin.members.delete(deleteMemberParams, function(err, data) {
+          if (err) {
+            console.log('remove_from_group err');
+            console.log(err);
+            return;
+          }
+          console.log('remove_from_group success');
+          console.log(data);
+          return;
+        });
+      }
+
+      var result = {
+        "user": data.data
+      };
+      
+      response.send(result);
+    });
+  });
+};
+
+var add_to_group = function(admin, user) {
+  const resource = Object.assign(user, {role: 'MEMBER'});
+  const memberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', resource: resource};
+  authClient.authorize(function(err, data) {
+    if (err) {
+			console.log(err);
+      response.send(err.response.data);
+      return;
+    }
+    admin.members.insert(memberParams, function(err, data) {
+      if (err) {
+        console.log('add_to_group err');
+        console.log(err);
+        return;
+      }
+      console.log('add_to_group success');
+      console.log(data);
+      return;
+
+    });
+  });
 };
 
 exports.handler = dynamic_group;
 // exports.handler = watch_users;
 // exports.handler = get_group_by_key;
-
