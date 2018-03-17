@@ -14,7 +14,7 @@ var Response = require('joule-node-response')
     , JouleNodeDatabase = require('joule-node-database')
     , myDb = new JouleNodeDatabase()
     , {google} = require('googleapis')
-    , jexl = require('Jexl')
+    , jexl = require('jexl')
     , scopes = [
       'https://www.googleapis.com/auth/admin.directory.user'
       , 'https://www.googleapis.com/auth/admin.directory.group'
