@@ -14,6 +14,7 @@ var Response = require('joule-node-response')
     , JouleNodeDatabase = require('joule-node-database')
     , myDb = new JouleNodeDatabase()
     , {google} = require('googleapis')
+    , jexl = require('Jexl')
     , scopes = [
       'https://www.googleapis.com/auth/admin.directory.user'
       , 'https://www.googleapis.com/auth/admin.directory.group'
@@ -27,6 +28,10 @@ const authClient = new google.auth.JWT(
         process.env.IMPERSONATE_EMAIL
       )
       , admin = google.admin('directory_v1');
+
+jexl.addTransform('lower', function(val) {
+    return val.toLowerCase();
+});
 
 var handler = function(event, context) {
 	var response = new Response()
@@ -54,14 +59,7 @@ var handler = function(event, context) {
 };
 
 var api_get = function(event, context, response) {
-  myDb.get('groups').done(function(err, data) {
-    if(err) {
-      console.log(err);
-      response.send(err);
-    }
-    console.log(data);
-    response.send('hi');
-  });
+  var user = {name: {fullName: 'Jaisen'}};
 };
 
 var api_post = function(event, context, response) {
@@ -95,7 +93,35 @@ var webhook = function(event, context, response) {
       console.log(data);
       const user = data.data;
 
-      if(user.name.fullName.toLowerCase().indexOf('jaisen') !== -1) {
+      jexl.eval('"jaisen" in name.fullName|lower', user, function(err, condition_status) {
+        if(condition_status) {
+          const resource = Object.assign(user, {role: 'MEMBER'});
+          const insertMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', resource: resource, auth: authClient};
+          admin.members.insert(insertMemberParams, function(err, data) {
+            if (err) {
+              console.log('add_to_group err');
+              console.log(err);
+              return;
+            }
+            console.log('add_to_group success');
+            response.send({"user": data.data});
+            return;
+          });
+        } else {
+          const deleteMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', memberKey: user.id, auth: authClient};
+          admin.members.delete(deleteMemberParams, function(err, data) {
+            if (err) {
+              console.log('remove_from_group err');
+              console.log(err);
+              return;
+            }
+            console.log('remove_from_group success');
+            response.send({"user": data.data});
+            return;
+          });
+        }
+      });
+      /*if(user.name.fullName.toLowerCase().indexOf('jaisen') !== -1) {
         const resource = Object.assign(user, {role: 'MEMBER'});
         const insertMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', resource: resource, auth: authClient};
         admin.members.insert(insertMemberParams, function(err, data) {
@@ -109,7 +135,6 @@ var webhook = function(event, context, response) {
           return;
         });
       } else {
-        const resource = Object.assign(user, {role: 'MEMBER'});
         const deleteMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', memberKey: user.id, auth: authClient};
         admin.members.delete(deleteMemberParams, function(err, data) {
           if (err) {
@@ -121,13 +146,7 @@ var webhook = function(event, context, response) {
           console.log(data);
           return;
         });
-      }
-
-      var result = {
-        "user": data.data
-      };
-      
-      response.send(result);
+      }*/
     });
   });
 };
