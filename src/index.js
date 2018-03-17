@@ -59,10 +59,12 @@ var handler = function(event, context) {
 };
 
 var api_get = function(event, context, response) {
+  return;
   var user = {name: {fullName: 'Jaisen'}};
 };
 
 var api_post = function(event, context, response) {
+  return;
   myDb.set('groups', {foo: 'bar'}).done(function(err, data) {
     if(err) {
       console.log(err);
@@ -74,6 +76,29 @@ var api_post = function(event, context, response) {
 };
 
 var webhook = function(event, context, response) {
+  const userKey = event.post['id'];
+  memberParams = {userKey:userKey, auth: authClient};
+  admin.users.get(memberParams, function(err, data) {
+    if (err) {
+      console.log(err);
+      response.send(err.response.data);
+      return;
+    }
+    const user = data.data;
+    var rules = {
+      'dynamic-group-of-jaisens@shelterplus.in': '"jaisen" in name.fullName|lower'
+      , 'dynamic-group-of-joes@shelterplus.in': '"joe" in name.fullName|lower'
+    };
+    ruleCount = 0;
+    ruleTotal = Object.keys(rules).length;
+    for(group in rules) {
+      process_rule(group, rules[group], user, response);
+    }
+  });
+};
+
+var process_rule = function(group, rule, user, response) {
+  ruleCount++;
   authClient.authorize(function(err, data) {
     if (err) {
 			console.log(err);
@@ -81,8 +106,6 @@ var webhook = function(event, context, response) {
       return;
     }
     
-    const userKey = event.post['id'];
-    const memberParams = {userKey:userKey, auth: authClient};
     admin.users.get(memberParams, function(err, data) {
       if (err) {
 				console.log(err);
@@ -90,63 +113,40 @@ var webhook = function(event, context, response) {
         return;
       }
 
-      console.log(data);
       const user = data.data;
 
-      jexl.eval('"jaisen" in name.fullName|lower', user, function(err, condition_status) {
+      jexl.eval(rule, user, function(err, condition_status) {
         if(condition_status) {
           const resource = Object.assign(user, {role: 'MEMBER'});
-          const insertMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', resource: resource, auth: authClient};
+          const insertMemberParams = {groupKey: group, resource: resource, auth: authClient};
           admin.members.insert(insertMemberParams, function(err, data) {
             if (err) {
               console.log('add_to_group err');
-              console.log(err);
+              //console.log(err);
               return;
             }
             console.log('add_to_group success');
-            response.send({"user": data.data});
+            if(ruleCount === ruleTotal) {
+              response.send('done'/*{"user": data.data}*/);
+            }
             return;
           });
         } else {
-          const deleteMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', memberKey: user.id, auth: authClient};
+          const deleteMemberParams = {groupKey: group, memberKey: user.id, auth: authClient};
           admin.members.delete(deleteMemberParams, function(err, data) {
             if (err) {
               console.log('remove_from_group err');
-              console.log(err);
+              //console.log(err);
               return;
             }
             console.log('remove_from_group success');
-            response.send({"user": data.data});
+            if(ruleCount === ruleTotal) {
+              response.send('done'/*{"user": data.data}*/);
+            }
             return;
           });
         }
       });
-      /*if(user.name.fullName.toLowerCase().indexOf('jaisen') !== -1) {
-        const resource = Object.assign(user, {role: 'MEMBER'});
-        const insertMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', resource: resource, auth: authClient};
-        admin.members.insert(insertMemberParams, function(err, data) {
-          if (err) {
-            console.log('add_to_group err');
-            console.log(err);
-            return;
-          }
-          console.log('add_to_group success');
-          console.log(data);
-          return;
-        });
-      } else {
-        const deleteMemberParams = {groupKey: 'dynamic-group-of-jaisens@shelterplus.in', memberKey: user.id, auth: authClient};
-        admin.members.delete(deleteMemberParams, function(err, data) {
-          if (err) {
-            console.log('remove_from_group err');
-            console.log(err);
-            return;
-          }
-          console.log('remove_from_group success');
-          console.log(data);
-          return;
-        });
-      }*/
     });
   });
 };
